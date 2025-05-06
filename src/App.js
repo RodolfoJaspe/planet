@@ -17,18 +17,18 @@ function Scene({isMuted, setIsMuted}) {
         <>
             <PerspectiveCamera
                     makeDefault
-                    position={[100, 100, 100]}
-                    fov={75}
+                    // position={[0, -100, 0]}
+                    fov={90}
                     near={.1}
                     far={1000}
-                    direction={[0,0,0]}
                 />
-            <ambientLight intensity={1} color="white"/>
+            <ambientLight intensity={0} color="white"/>
             <directionalLight
-                    position={[50, 200, 50]}
-                    intensity={2}
-                    color={"lightyellow"}
+                    position={[200, 100, 0]}
+                    intensity={8}
+                    color={"pink"}
             />
+
             
             <Physics gravity={[0, 0, 0]}>
             <Planet />
@@ -45,14 +45,14 @@ function Scene({isMuted, setIsMuted}) {
             {orbitEnabled && 
             <OrbitControls 
                 enableDamping 
-                dampingFactor={0.1}
+                dampingFactor={0.01}
                 rotateSpeed={0.5} 
                 target={carPosition} 
-                maxDistance={100} 
+                maxDistance={800} 
                 minDistance={.5}/>}
 
         </>       
-    )
+    )   
 }
 // Main App component
 function App() {

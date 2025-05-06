@@ -14,20 +14,20 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
 
     // Track key states
     const keys = useRef({
-        ArrowUp: false,
-        ArrowDown: false,
+        w: false,
+        s: false,
     }).current;
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (keys[event.key] !== undefined) {
-                keys[event.key] = true;
+            if (keys[event.key.toLowerCase()] !== undefined) {
+                keys[event.key.toLowerCase()] = true;
             }
         };
 
         const handleKeyUp = (event) => {
-            if (keys[event.key] !== undefined) {
-                keys[event.key] = false;
+            if (keys[event.key.toLowerCase()] !== undefined) {
+                keys[event.key.toLowerCase()] = false;
             }
         };
 
@@ -41,8 +41,8 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
     }, [keys]);
 
     const calculatePitch = () => {
-        // Check if either up or down arrow is pressed
-        const isAccelerating = keys.ArrowUp || keys.ArrowDown;
+        // Check if either w or s is pressed
+        const isAccelerating = keys.w || keys.s;
         
         // Smoothly interpolate between idle and acceleration pitch
         const targetPitch = isAccelerating ? ACCEL_PITCH : IDLE_PITCH;

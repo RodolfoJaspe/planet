@@ -15,6 +15,8 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
     const turnForce = 0.0001; // Reduced force for more controlled turning
     const [currentSpeed, setCurrentSpeed] = useState(0);
     const minSpeedForCameraFollow = 1.5; // Minimum speed to trigger camera follow
+    const [hasStartedMoving, setHasStartedMoving] = useState(false);
+    const [initialCameraSetup, setInitialCameraSetup] = useState(false);
 
     // Vectors for movement calculations
     const forward = useRef(new THREE.Vector3());
@@ -27,28 +29,31 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
     const cameraLookOffset = new THREE.Vector3(0, 0, 2); // Point camera looks at relative to car
 
     const keys = useRef({
-        ArrowUp: false,
-        ArrowDown: false,
-        ArrowLeft: false,
-        ArrowRight: false,
+        w: false,
+        s: false,
+        a: false,
+        d: false,
     }).current;
-
-    const [currentSteerAngle, setCurrentSteerAngle] = useState(0);
-    const maxSteerAngle = 0.5;
-    const steerSpeed = 0.1; // How quickly the wheels turn
 
     useEffect(() => {
         const handleKeyDown = (event) => {
-            if (keys[event.key] !== undefined) {
-                keys[event.key] = true;
+            if (keys[event.key.toLowerCase()] !== undefined) {
+                keys[event.key.toLowerCase()] = true;
             }
         };
 
         const handleKeyUp = (event) => {
-            if (keys[event.key] !== undefined) {
-                keys[event.key] = false;
+            if (keys[event.key.toLowerCase()] !== undefined) {
+                keys[event.key.toLowerCase()] = false;
             }
         };
+
+        // Set initial camera position
+        if (camera && !initialCameraSetup) {
+            camera.position.set(0, -1000, 0);
+            camera.lookAt(0, 0, 0);
+            setInitialCameraSetup(true);
+        }
 
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
@@ -57,7 +62,7 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
-    }, [keys]);
+    }, [keys, camera, initialCameraSetup]);
 
     useFrame(() => {
         if (!rigidBodyRef.current) return;
@@ -92,21 +97,24 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
         const speed = Math.sqrt(velocity.x * velocity.x + velocity.y * velocity.y + velocity.z * velocity.z);
         setCurrentSpeed(speed);
 
+        // Update hasStartedMoving state only if we've moved significantly
+        if (speed > 0.5 && !hasStartedMoving) {
+            setHasStartedMoving(true);
+        }
+
         // Apply movement force
-        if (keys.ArrowUp || keys.ArrowDown) {
+        if (keys.w || keys.s) {
             const force = new THREE.Vector3();
-            const direction = keys.ArrowUp ? 1 : -1;
+            const direction = keys.w ? 1 : -1;
             force.copy(forward.current).multiplyScalar(moveForce * direction);
             rigidBodyRef.current.applyImpulse(force, true);
-
-            // Slightly adjust position upward when moving forward
-
         }
 
         // Apply turning torque
-        if (keys.ArrowLeft || keys.ArrowRight) {
+        if (keys.a || keys.d) {
             const torque = new THREE.Vector3();
-            const direction = keys.ArrowLeft ? 1 : -1; // Reversed direction
+            // Flip direction when reversing
+            const direction = keys.s ? (keys.a ? -1 : 1) : (keys.a ? 1 : -1);
             const turnSpeed = Math.min(currentSpeed, 1) * turnForce;
             torque.copy(up.current).multiplyScalar(turnSpeed * direction);
             rigidBodyRef.current.applyTorqueImpulse(torque, true);
@@ -115,7 +123,7 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
         // Apply gravitational force
         const gravityForce = down.current.clone().multiplyScalar(0.0005);
         // Reduce gravity when moving forward
-        if (keys.ArrowUp || keys.ArrowDown) {
+        if (keys.w || keys.s) {
             gravityForce.multiplyScalar(-.01); // Adjust this value to control gravity reduction
         }
         rigidBodyRef.current.applyImpulse(gravityForce, true);
@@ -126,10 +134,12 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
         
         // Add tilt based on turning
         let tiltAngle = 0;
-        if (keys.ArrowLeft) {
-            tiltAngle = 0.3; // Tilt right when turning left
-        } else if (keys.ArrowRight) {
-            tiltAngle = -0.3; // Tilt left when turning right
+        if (keys.a) {
+            // Flip tilt direction when reversing
+            tiltAngle = keys.s ? -0.3 : 0.3; // Tilt right when turning left (forward), left when turning left (reverse)
+        } else if (keys.d) {
+            // Flip tilt direction when reversing
+            tiltAngle = keys.s ? 0.3 : -0.3; // Tilt left when turning right (forward), right when turning right (reverse)
         }
         
         // Create a rotation matrix for the tilt using the car's right vector
@@ -154,9 +164,9 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
         setCarPosition([currentPosition.x, currentPosition.y, currentPosition.z]);
 
         // Handle camera following
-        if (currentSpeed > minSpeedForCameraFollow) {
+        if (hasStartedMoving && currentSpeed > minSpeedForCameraFollow && initialCameraSetup) {
             // Determine if we're moving forward or backward
-            const isReversing = keys.ArrowDown;
+            const isReversing = keys.s;
             
             // Calculate camera position based on direction
             const cameraPosition = new THREE.Vector3();
@@ -180,49 +190,24 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
             
             // Disable orbit controls when following
             setOrbitEnabled(false);
+        } else if (!hasStartedMoving) {
+            // Keep camera at initial position if car hasn't started moving
+            camera.position.set(0, -1000, 0);
+            camera.lookAt(0, 0, 0);
+            setOrbitEnabled(true);
         } else {
             // Re-enable orbit controls when car is slow
             setOrbitEnabled(true);
         }
     });
 
-    //  Wheels rotation
-    // const wheels = {
-    //     leftFrontWheel: gltf.scene.getObjectByName('left_front_wheel'),
-    //     rightFrontWheel: gltf.scene.getObjectByName('right_front_wheel'),
-    //     rearWheels: gltf.scene.getObjectByName('rear_wheels'),
-    // };
-
-    // useFrame(() => {
-    //     // Calculate wheel rotation speed based on direction
-    //     const wheelRotationSpeed = currentSpeed * 0.05 * (keys.ArrowUp ? 1 : keys.ArrowDown ? -1 : 0);
-
-    //     wheels.rearWheels.rotation.x += wheelRotationSpeed;
-
-    //     // Calculate target steer angle
-    //     const targetSteerAngle = keys.ArrowLeft ? maxSteerAngle : keys.ArrowRight ? -maxSteerAngle : 0;
-        
-    //     // Smoothly interpolate current steer angle to target
-    //     setCurrentSteerAngle(prev => {
-    //         if (Math.abs(prev - targetSteerAngle) < 0.01) return targetSteerAngle;
-    //         return prev + (targetSteerAngle - prev) * steerSpeed;
-    //     });
-
-    //     const frontWheels = [wheels.leftFrontWheel, wheels.rightFrontWheel];
-    //     frontWheels.forEach(wheel => {
-    //         let vector = new THREE.Vector3(wheel.rotation.x, wheel.rotation.y, currentSteerAngle);
-    //         wheel.rotation.z = currentSteerAngle;
-    //         wheel.rotation.setFromVector3(vector, 'YZX');
-    //         wheel.rotation.x += wheelRotationSpeed;
-    //     });
-    // });
-
     return (
         <>
         <Sound acceleration={currentSpeed} speed={currentSpeed} isMuted={isMuted} setIsMuted={setIsMuted} />
         <RigidBody 
             type="dynamic" 
-            position={[-2, 102, -10]}
+            position={[0, 80, 80]}
+            rotation={[0, -2.5, 0]}
             colliders="cuboid" 
             mass={1000}
             linearDamping={0.5} 

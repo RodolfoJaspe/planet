@@ -6,7 +6,7 @@ function Planet() {
       <RigidBody type="fixed" colliders="ball">
         <mesh>
           <sphereGeometry args={[100, 64, 64]} />
-          <meshStandardMaterial color="pink" />
+          <meshStandardMaterial color="Moccasin" />
         </mesh>
       </RigidBody>
     );
