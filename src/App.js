@@ -6,9 +6,12 @@ import Car from './components/car/Car';
 import City from './components/city/City';
 import Mute from './components/dom_elements/Mute';
 import Planet from './components/planet/Planet';
+import Eiffel from './components/structures/Eiffel';
+import Pyramid from './components/structures/Pyramid';
 import Sun from './components/sun/Sun';
 import { CameraStateProvider } from './state/CameraStateContext';
 
+import Town from './components/structures/Town';
 function Scene({isMuted, setIsMuted}) {
     const [orbitEnabled, setOrbitEnabled] = useState(true);
     const [carPosition, setCarPosition] = useState([0, 50, 0]);
@@ -22,10 +25,10 @@ function Scene({isMuted, setIsMuted}) {
                     near={.1}
                     far={1000}
                 />
-            <ambientLight intensity={0} color="white"/>
+            <ambientLight intensity={.4} color="pink"/>
             <directionalLight
-                    position={[200, 100, 0]}
-                    intensity={8}
+                    position={[0, 100, -100]}
+                    intensity={5}
                     color={"pink"}
             />
 
@@ -34,6 +37,9 @@ function Scene({isMuted, setIsMuted}) {
             <Planet />
             <City />
             <Sun />
+            <Eiffel />
+            <Pyramid />
+            <Town />
             <Car 
                 setOrbitEnabled={setOrbitEnabled} 
                 setCarPosition={setCarPosition} 
