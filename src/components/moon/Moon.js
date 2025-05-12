@@ -1,7 +1,7 @@
 import { RigidBody } from '@react-three/rapier';
 
 // Planet component representing the central gravitational body
-function Sun() {
+function Moon() {
     return (
       <RigidBody type="fixed" colliders="ball" position={[-200, 150, -300]}>
         <mesh>
@@ -12,4 +12,4 @@ function Sun() {
     );
   }
 
-export default Sun;
+export default Moon;

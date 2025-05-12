@@ -4,7 +4,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 
 
 // Planet component representing the central gravitational body
-function Eiffel() {
+function Pyramid() {
     const gltf = useLoader(GLTFLoader, '/Assets/pyramid/scene.glb');
 
 
@@ -22,4 +22,4 @@ function Eiffel() {
     );
 }
 
-export default Eiffel;
+export default Pyramid;

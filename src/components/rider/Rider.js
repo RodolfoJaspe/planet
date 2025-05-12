@@ -1,12 +1,26 @@
-import { useFrame, useLoader } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
+import { useFrame, useThree } from '@react-three/fiber';
 import { RigidBody } from '@react-three/rapier';
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
+import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader';
 import Sound from './Sound';
-const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => {
 
-    const gltf = useLoader(GLTFLoader, '/Assets/rider/scene.glb');
+const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted}) => {
+    const gl = useThree((state) => state.gl);
+    const { scene } = useGLTF(
+      '/Assets/rider/rider_smaller.glb',
+      undefined,
+      undefined,
+      (loader) => {
+        const ktx2loader = new KTX2Loader();
+        ktx2loader.setTranscoderPath(
+          "https://cdn.jsdelivr.net/gh/pmndrs/drei-assets/basis/"
+        );
+        ktx2loader.detectSupport(gl);
+        loader.setKTX2Loader(ktx2loader);
+      }
+    );
     const planetCenter = [0, 0, 0];
     const rigidBodyRef = useRef();
     
@@ -161,7 +175,7 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
         rigidBodyRef.current.setRotation(currentQuaternion, true);
 
         // Update car position state
-        setCarPosition([currentPosition.x, currentPosition.y, currentPosition.z]);
+        setRiderPosition([currentPosition.x, currentPosition.y, currentPosition.z]);
 
         // Handle camera following
         if (hasStartedMoving && currentSpeed > minSpeedForCameraFollow && initialCameraSetup) {
@@ -218,10 +232,10 @@ const Car = ({setOrbitEnabled, setCarPosition, camera, isMuted, setIsMuted}) => 
             restitution={0.2}
             ref={rigidBodyRef}
         >
-            <primitive object={gltf.scene} scale={.2} castShadow receiveShadow/>
+            <primitive object={scene} scale={.2} castShadow receiveShadow/>
         </RigidBody>
         </>
     );
 }
 
-export default Car;
+export default Rider;

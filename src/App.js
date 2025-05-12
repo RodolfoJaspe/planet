@@ -2,19 +2,19 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import React, { useState } from 'react';
-import Car from './components/car/Car';
-import City from './components/city/City';
 import Mute from './components/dom_elements/Mute';
+import Moon from './components/moon/Moon';
 import Planet from './components/planet/Planet';
+import Rider from './components/rider/Rider';
 import Eiffel from './components/structures/Eiffel';
 import Pyramid from './components/structures/Pyramid';
-import Sun from './components/sun/Sun';
+import Track from './components/track/Track';
 import { CameraStateProvider } from './state/CameraStateContext';
 
 import Town from './components/structures/Town';
 function Scene({isMuted, setIsMuted}) {
     const [orbitEnabled, setOrbitEnabled] = useState(true);
-    const [carPosition, setCarPosition] = useState([0, 50, 0]);
+    const [riderPosition, setRiderPosition] = useState([0, 50, 0]);
     const { camera } = useThree();
     return (
         <>
@@ -35,14 +35,14 @@ function Scene({isMuted, setIsMuted}) {
             
             <Physics gravity={[0, 0, 0]}>
             <Planet />
-            <City />
-            <Sun />
+            <Track />
+            <Moon />
             <Eiffel />
             <Pyramid />
             <Town />
-            <Car 
+            <Rider 
                 setOrbitEnabled={setOrbitEnabled} 
-                setCarPosition={setCarPosition} 
+                setRiderPosition={setRiderPosition} 
                 camera={camera} 
                 isMuted={isMuted}
                 setIsMuted={setIsMuted}
@@ -53,7 +53,7 @@ function Scene({isMuted, setIsMuted}) {
                 enableDamping 
                 dampingFactor={0.01}
                 rotateSpeed={0.5} 
-                target={carPosition} 
+                target={riderPosition} 
                 maxDistance={800} 
                 minDistance={.5}/>}
 
