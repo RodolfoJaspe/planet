@@ -198,7 +198,7 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
             cameraUp.copy(up.current);
 
             // Smoothly move camera
-            camera.position.lerp(cameraPosition, 0.1);
+            camera.position.lerp(cameraPosition, 0.04);
             camera.up.copy(cameraUp);
             camera.lookAt(lookAtPoint);
             
