@@ -11,6 +11,8 @@ import Eiffel from './components/structures/Eiffel';
 import Pyramid from './components/structures/Pyramid';
 import Track from './components/track/Track';
 import { CameraStateProvider } from './state/CameraStateContext';
+import { MultiplayerProvider } from './state/MultiplayerContext';
+import OtherPlayers from './components/other_players/OtherPlayers';
 
 import Town from './components/structures/Town';
 function Scene({isMuted, setIsMuted}) {
@@ -41,10 +43,11 @@ function Scene({isMuted, setIsMuted}) {
             <Eiffel />
             <Pyramid />
             <Town />
-            <Rider 
-                setOrbitEnabled={setOrbitEnabled} 
-                setRiderPosition={setRiderPosition} 
-                camera={camera} 
+            <OtherPlayers />
+            <Rider
+                setOrbitEnabled={setOrbitEnabled}
+                setRiderPosition={setRiderPosition}
+                camera={camera}
                 isMuted={isMuted}
                 setIsMuted={setIsMuted}
             />
@@ -66,13 +69,15 @@ function App() {
     const [isMuted, setIsMuted] = useState(false);
   return (
     <div style={{ width: '100vw', height: '100vh', backgroundColor: 'brown' }}>
-        <CameraStateProvider>
-            <Canvas>
-                <Scene isMuted={isMuted} setIsMuted={setIsMuted}/>
-            </Canvas>
-            <Mute isMuted={isMuted} setIsMuted={setIsMuted} />
-            <MobileControls />
-        </CameraStateProvider>
+        <MultiplayerProvider>
+            <CameraStateProvider>
+                <Canvas>
+                    <Scene isMuted={isMuted} setIsMuted={setIsMuted}/>
+                </Canvas>
+                <Mute isMuted={isMuted} setIsMuted={setIsMuted} />
+                <MobileControls />
+            </CameraStateProvider>
+        </MultiplayerProvider>
     </div>
   );
 }

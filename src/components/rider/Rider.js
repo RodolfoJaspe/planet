@@ -5,9 +5,11 @@ import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader';
 import Sound from './Sound';
+import { useMultiplayer } from '../../state/MultiplayerContext';
 
 const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted}) => {
     const gl = useThree((state) => state.gl);
+    const { emitUpdate } = useMultiplayer();
     const { scene } = useGLTF(
       '/Assets/rider/rider_smaller.glb',
       undefined,
@@ -26,7 +28,7 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
     
     // Movement parameters
     const moveForce = 0.001; // Reduced force for more controlled movement
-    const turnForce = 0.0001; // Reduced force for more controlled turning
+    const turnForce = 0.00005; // Reduced force for more controlled turning
     const [currentSpeed, setCurrentSpeed] = useState(0);
     const minSpeedForCameraFollow = 1.5; // Minimum speed to trigger camera follow
     const [hasStartedMoving, setHasStartedMoving] = useState(false);
@@ -39,8 +41,12 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
     const down = useRef(new THREE.Vector3());
 
     // Camera parameters
-    const cameraOffset = new THREE.Vector3(0, 0.4, .5); // Camera position relative to car
-    const cameraLookOffset = new THREE.Vector3(0, 0, 2); // Point camera looks at relative to car
+    const cameraOffset = useRef(new THREE.Vector3(0, 0.4, .5)); // Camera position relative to car
+    const cameraLookOffset = useRef(new THREE.Vector3(0, 0, 2)); // Point camera looks at relative to car
+    const currentLookAt = useRef(new THREE.Vector3()); // Current smoothed lookAt point
+    const smoothedRiderPosition = useRef(new THREE.Vector3()); // Smoothed rider position to reduce shake
+    const lastEmitTime = useRef(0); // Throttle multiplayer updates
+    const [isPortrait, setIsPortrait] = useState(window.innerWidth < window.innerHeight);
 
     const keys = useRef({
         w: false,
@@ -62,6 +68,10 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
             }
         };
 
+        const handleResize = () => {
+            setIsPortrait(window.innerWidth < window.innerHeight);
+        };
+
         // Set initial camera position
         if (camera && !initialCameraSetup) {
             camera.position.set(0, -1000, 0);
@@ -71,10 +81,12 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
 
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
+        window.addEventListener('resize', handleResize);
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
+            window.removeEventListener('resize', handleResize);
         };
     }, [keys, camera, initialCameraSetup]);
 
@@ -174,34 +186,36 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
         // Apply the new rotation
         rigidBodyRef.current.setRotation(currentQuaternion, true);
 
+        // Emit position/rotation to server (throttled to ~20fps)
+        const now = Date.now();
+        if (now - lastEmitTime.current > 50) {
+            emitUpdate(currentPosition, currentQuaternion);
+            lastEmitTime.current = now;
+        }
+
         // Update car position state
         setRiderPosition([currentPosition.x, currentPosition.y, currentPosition.z]);
 
         // Handle camera following
         if (hasStartedMoving && currentSpeed > minSpeedForCameraFollow && initialCameraSetup) {
-            // Determine if we're moving forward or backward
-            const isReversing = keys.s;
-            
-            // Calculate camera position based on direction
+            // Smooth the rider position to reduce camera shake from physics jitter
+            smoothedRiderPosition.current.lerp(new THREE.Vector3(currentPosition.x, currentPosition.y, currentPosition.z), 0.08);
+
+            // Adjust camera distance for portrait mode
+            const cameraDistance = isPortrait ? 0.6 : 0.4;
+
+            // Position camera directly behind rider (away from planet center)
             const cameraPosition = new THREE.Vector3();
-            cameraPosition.copy(currentPosition)
-                .add(forward.current.clone().multiplyScalar(isReversing ? cameraOffset.z : -cameraOffset.z))
-                .add(up.current.clone().multiplyScalar(cameraOffset.y));
+            cameraPosition.copy(smoothedRiderPosition.current)
+                .add(up.current.clone().multiplyScalar(cameraDistance));
 
-            // Calculate point for camera to look at
-            const lookAtPoint = new THREE.Vector3();
-            lookAtPoint.copy(currentPosition)
-                .add(forward.current.clone().multiplyScalar(isReversing ? -cameraLookOffset.z : cameraLookOffset.z));
-
-            // Calculate camera up vector based on planet surface normal
-            const cameraUp = new THREE.Vector3();
-            cameraUp.copy(up.current);
+            // Always look directly at rider (center of screen)
+            camera.up.copy(up.current);
+            camera.lookAt(smoothedRiderPosition.current);
 
             // Smoothly move camera
-            camera.position.lerp(cameraPosition, 0.04);
-            camera.up.copy(cameraUp);
-            camera.lookAt(lookAtPoint);
-            
+            camera.position.lerp(cameraPosition, 0.12);
+
             // Disable orbit controls when following
             setOrbitEnabled(false);
         } else if (!hasStartedMoving) {
@@ -217,7 +231,7 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
 
     return (
         <>
-        <Sound acceleration={currentSpeed} speed={currentSpeed} isMuted={isMuted} setIsMuted={setIsMuted} />
+        <Sound isMuted={isMuted} camera={camera} />
         <RigidBody 
             type="dynamic" 
             position={[0, 80, 80]}

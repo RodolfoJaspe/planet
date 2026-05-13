@@ -1,117 +1,94 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 
-const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
+const CarSounds = ({ isMuted, camera }) => {
     const audioListener = useRef(new THREE.AudioListener());
     const engineSound = useRef(new THREE.Audio(audioListener.current));
     const audioLoader = useRef(new THREE.AudioLoader());
-    const currentPitch = useRef(0.5); // Start with idle pitch
+    const currentPitch = useRef(0.5);
+    const currentVolume = useRef(0.0);
+    const audioContextInitialized = useRef(false);
 
     const IDLE_PITCH = 0.5;
-    const ACCEL_PITCH = 1;
-    const PITCH_CHANGE_SPEED = 0.1; // How fast the pitch changes
+    const ACCEL_PITCH = 1.0;
+    const IDLE_VOLUME = 0.4;
+    const ACCEL_VOLUME = 0.9;
+    const PITCH_LERP = 0.03;
+    const VOLUME_LERP = 0.03;
 
-    // Track key states
-    const keys = useRef({
-        w: false,
-        s: false,
-    }).current;
+    const keys = useRef({ w: false, s: false }).current;
 
     useEffect(() => {
-        const handleKeyDown = (event) => {
-            if (keys[event.key.toLowerCase()] !== undefined) {
-                keys[event.key.toLowerCase()] = true;
-            }
-        };
-
-        const handleKeyUp = (event) => {
-            if (keys[event.key.toLowerCase()] !== undefined) {
-                keys[event.key.toLowerCase()] = false;
-            }
-        };
-
+        const handleKeyDown = (e) => { if (keys[e.key.toLowerCase()] !== undefined) keys[e.key.toLowerCase()] = true; };
+        const handleKeyUp   = (e) => { if (keys[e.key.toLowerCase()] !== undefined) keys[e.key.toLowerCase()] = false; };
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
-
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
         };
     }, [keys]);
 
-    const calculatePitch = useCallback(() => {
-        // Check if either w or s is pressed
-        const isAccelerating = keys.w || keys.s;
-        
-        // Smoothly interpolate between idle and acceleration pitch
-        const targetPitch = isAccelerating ? ACCEL_PITCH : IDLE_PITCH;
-        currentPitch.current = THREE.MathUtils.lerp(
-            currentPitch.current,
-            targetPitch,
-            PITCH_CHANGE_SPEED
-        );
-        return currentPitch.current;
-    }, [keys]);
-
     useEffect(() => {
-        console.log('Attempting to load engine sound...');
+        if (!camera) return;
+
+        camera.add(audioListener.current);
         const sound = engineSound.current;
-        
-        // Load engine sound
+
+        const initAudio = () => {
+            if (audioContextInitialized.current) return;
+            const ctx = audioListener.current.context;
+            if (ctx.state === 'suspended') ctx.resume();
+            audioContextInitialized.current = true;
+        };
+
         audioLoader.current.load(
             '/Assets/sounds/engine.mp3',
             (buffer) => {
-                console.log('Engine sound loaded successfully');
                 sound.setBuffer(buffer);
                 sound.setLoop(true);
-                sound.setVolume(isMuted ? 0 : 5.0);
-                
-                // Try to play sound after user interaction
-                const handleFirstInteraction = () => {
-                    try {
-                        sound.play();
-                        console.log('Engine sound started playing');
-                    } catch (error) {
-                        console.error('Error playing engine sound:', error);
-                    }
-                    document.removeEventListener('click', handleFirstInteraction);
-                    document.removeEventListener('keydown', handleFirstInteraction);
-                };
+                sound.setVolume(0);
 
-                document.addEventListener('click', handleFirstInteraction);
-                document.addEventListener('keydown', handleFirstInteraction);
+                const tryPlay = () => {
+                    try { initAudio(); sound.play(); } catch (e) {}
+                };
+                document.addEventListener('click',      tryPlay, { once: true });
+                document.addEventListener('touchstart', tryPlay, { once: true });
+                document.addEventListener('keydown',    tryPlay, { once: true });
             },
-            (xhr) => {
-                console.log('Loading progress:', (xhr.loaded / xhr.total) * 100 + '%');
-            },
-            (error) => {
-                console.error('Error loading engine sound:', error);
-            }
+            undefined,
+            (e) => console.error('Error loading engine sound:', e)
         );
 
+        const initOnInteraction = () => initAudio();
+        document.addEventListener('click',      initOnInteraction);
+        document.addEventListener('touchstart', initOnInteraction);
+
         return () => {
-            console.log('Cleaning up engine sound');
-            if (sound) {
-                sound.stop();
-            }
+            sound.stop();
+            camera.remove(audioListener.current);
+            document.removeEventListener('click',      initOnInteraction);
+            document.removeEventListener('touchstart', initOnInteraction);
         };
-    }, [isMuted]);
+    }, [camera]);
 
-    useEffect(() => {
-        if (engineSound.current.isPlaying) {
-            // Set pitch based on key states with smooth transition
-            const pitch = calculatePitch();
-            engineSound.current.setPlaybackRate(pitch);
+    // Per-frame smooth audio updates — no React re-renders triggered
+    useFrame(() => {
+        const sound = engineSound.current;
+        if (!sound.isPlaying) return;
 
-            // Adjust volume based on acceleration and mute state
-            if (!isMuted) {
-                const volume = 2.0 + Math.abs(acceleration) / 10;
-                engineSound.current.setVolume(Math.max(2.0, Math.min(10.0, volume)));
-            } else {
-                engineSound.current.setVolume(0);
-            }
-        }
-    }, [acceleration, speed, isMuted, calculatePitch]);
+        const isAccelerating = keys.w || keys.s;
+
+        const targetPitch  = isAccelerating ? ACCEL_PITCH  : IDLE_PITCH;
+        const targetVolume = isMuted ? 0 : (isAccelerating ? ACCEL_VOLUME : IDLE_VOLUME);
+
+        currentPitch.current  = THREE.MathUtils.lerp(currentPitch.current,  targetPitch,  PITCH_LERP);
+        currentVolume.current = THREE.MathUtils.lerp(currentVolume.current, targetVolume, VOLUME_LERP);
+
+        sound.setPlaybackRate(currentPitch.current);
+        sound.setVolume(currentVolume.current);
+    });
 
     return null;
 };
