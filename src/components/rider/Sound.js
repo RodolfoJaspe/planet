@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import * as THREE from 'three';
 
 const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
@@ -55,20 +55,21 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
 
     useEffect(() => {
         console.log('Attempting to load engine sound...');
+        const sound = engineSound.current;
         
         // Load engine sound
         audioLoader.current.load(
             '/Assets/sounds/engine.mp3',
             (buffer) => {
                 console.log('Engine sound loaded successfully');
-                engineSound.current.setBuffer(buffer);
-                engineSound.current.setLoop(true);
-                engineSound.current.setVolume(isMuted ? 0 : 5.0);
+                sound.setBuffer(buffer);
+                sound.setLoop(true);
+                sound.setVolume(isMuted ? 0 : 5.0);
                 
                 // Try to play sound after user interaction
                 const handleFirstInteraction = () => {
                     try {
-                        engineSound.current.play();
+                        sound.play();
                         console.log('Engine sound started playing');
                     } catch (error) {
                         console.error('Error playing engine sound:', error);
@@ -90,7 +91,6 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
 
         return () => {
             console.log('Cleaning up engine sound');
-            const sound = engineSound.current;
             if (sound) {
                 sound.stop();
             }
