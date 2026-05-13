@@ -2,6 +2,7 @@ import { OrbitControls, PerspectiveCamera } from '@react-three/drei';
 import { Canvas, useThree } from '@react-three/fiber';
 import { Physics } from '@react-three/rapier';
 import React, { useState } from 'react';
+import MobileControls from './components/dom_elements/MobileControls';
 import Mute from './components/dom_elements/Mute';
 import Moon from './components/moon/Moon';
 import Planet from './components/planet/Planet';
@@ -70,6 +71,7 @@ function App() {
                 <Scene isMuted={isMuted} setIsMuted={setIsMuted}/>
             </Canvas>
             <Mute isMuted={isMuted} setIsMuted={setIsMuted} />
+            <MobileControls />
         </CameraStateProvider>
     </div>
   );

@@ -1,0 +1,56 @@
+.mobile-controls {
+  display: none;
+  position: absolute;
+  bottom: 30px;
+  left: 0;
+  right: 0;
+  padding: 0 24px;
+  pointer-events: none;
+  z-index: 1000;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.mobile-group {
+  pointer-events: all;
+  display: flex;
+  gap: 10px;
+}
+
+.mobile-group-left {
+  flex-direction: column;
+}
+
+.mobile-group-right {
+  flex-direction: row;
+  align-items: center;
+}
+
+.mobile-btn {
+  width: 68px;
+  height: 68px;
+  background-color: rgba(255, 182, 193, 0.85);
+  color: brown;
+  font-size: 22px;
+  font-weight: bold;
+  border: 2.5px solid brown;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+  transition: background-color 0.1s;
+}
+
+.mobile-btn:active {
+  background-color: rgba(205, 92, 92, 0.9);
+}
+
+@media (max-width: 768px), (pointer: coarse) {
+  .mobile-controls {
+    display: flex;
+  }
+}
