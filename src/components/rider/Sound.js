@@ -1,11 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import * as THREE from 'three';
 
 const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
     const audioListener = useRef(new THREE.AudioListener());
     const engineSound = useRef(new THREE.Audio(audioListener.current));
     const audioLoader = useRef(new THREE.AudioLoader());
-    const [isSoundEnabled, setIsSoundEnabled] = useState(false);
     const currentPitch = useRef(0.5); // Start with idle pitch
 
     const IDLE_PITCH = 0.5;
@@ -40,7 +39,7 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
         };
     }, [keys]);
 
-    const calculatePitch = () => {
+    const calculatePitch = useCallback(() => {
         // Check if either w or s is pressed
         const isAccelerating = keys.w || keys.s;
         
@@ -52,7 +51,7 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
             PITCH_CHANGE_SPEED
         );
         return currentPitch.current;
-    };
+    }, [keys]);
 
     useEffect(() => {
         console.log('Attempting to load engine sound...');
@@ -71,7 +70,6 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
                     try {
                         engineSound.current.play();
                         console.log('Engine sound started playing');
-                        setIsSoundEnabled(true);
                     } catch (error) {
                         console.error('Error playing engine sound:', error);
                     }
@@ -92,11 +90,12 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
 
         return () => {
             console.log('Cleaning up engine sound');
-            if (engineSound.current) {
-                engineSound.current.stop();
+            const sound = engineSound.current;
+            if (sound) {
+                sound.stop();
             }
         };
-    }, []);
+    }, [isMuted]);
 
     useEffect(() => {
         if (engineSound.current.isPlaying) {
@@ -112,7 +111,7 @@ const CarSounds = ({ acceleration, speed, isMuted, setIsMuted }) => {
                 engineSound.current.setVolume(0);
             }
         }
-    }, [acceleration, speed, isMuted]);
+    }, [acceleration, speed, isMuted, calculatePitch]);
 
     return null;
 };
