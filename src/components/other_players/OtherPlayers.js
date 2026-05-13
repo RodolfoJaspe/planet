@@ -1,7 +1,6 @@
 import { useGLTF } from '@react-three/drei';
 import { useThree } from '@react-three/fiber';
 import React from 'react';
-import * as THREE from 'three';
 import { KTX2Loader } from 'three/examples/jsm/loaders/KTX2Loader';
 import { useMultiplayer } from '../../state/MultiplayerContext';
 

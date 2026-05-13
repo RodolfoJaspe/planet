@@ -41,9 +41,6 @@ const Rider = ({setOrbitEnabled, setRiderPosition, camera, isMuted, setIsMuted})
     const down = useRef(new THREE.Vector3());
 
     // Camera parameters
-    const cameraOffset = useRef(new THREE.Vector3(0, 0.4, .5)); // Camera position relative to car
-    const cameraLookOffset = useRef(new THREE.Vector3(0, 0, 2)); // Point camera looks at relative to car
-    const currentLookAt = useRef(new THREE.Vector3()); // Current smoothed lookAt point
     const smoothedRiderPosition = useRef(new THREE.Vector3()); // Smoothed rider position to reduce shake
     const lastEmitTime = useRef(0); // Throttle multiplayer updates
     const [isPortrait, setIsPortrait] = useState(window.innerWidth < window.innerHeight);

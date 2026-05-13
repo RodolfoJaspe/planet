@@ -33,12 +33,13 @@ const CarSounds = ({ isMuted, camera }) => {
     useEffect(() => {
         if (!camera) return;
 
-        camera.add(audioListener.current);
+        const listener = audioListener.current;
+        camera.add(listener);
         const sound = engineSound.current;
 
         const initAudio = () => {
             if (audioContextInitialized.current) return;
-            const ctx = audioListener.current.context;
+            const ctx = listener.context;
             if (ctx.state === 'suspended') ctx.resume();
             audioContextInitialized.current = true;
         };
@@ -67,7 +68,7 @@ const CarSounds = ({ isMuted, camera }) => {
 
         return () => {
             sound.stop();
-            camera.remove(audioListener.current);
+            camera.remove(listener);
             document.removeEventListener('click',      initOnInteraction);
             document.removeEventListener('touchstart', initOnInteraction);
         };
